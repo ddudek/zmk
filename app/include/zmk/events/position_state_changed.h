@@ -8,7 +8,9 @@
 
 #include <zephyr.h>
 #include <zmk/event_manager.h>
+
 struct zmk_position_state_changed {
+    uint8_t source;
     uint32_t position;
     bool state;
     int64_t timestamp;
