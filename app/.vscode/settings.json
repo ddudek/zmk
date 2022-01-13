@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "central.h": "c",
+        "event_manager.h": "c",
+        "layer_state_changed.h": "c",
+        "behavior_state_changed.h": "c",
+        "sensor_event.h": "c",
+        "position_state_changed.h": "c",
+        "types.h": "c",
+        "uuid.h": "c",
+        "service.h": "c",
+        "behavior.h": "c"
+    }
+}

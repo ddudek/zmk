@@ -43,6 +43,12 @@ struct bvd_data {
     struct battery_value value;
 };
 
+static uint16_t zmk_millivolts = 0;
+
+uint16_t zmk_get_millivolts() {
+    return zmk_millivolts;
+}
+
 static int bvd_sample_fetch(const struct device *dev, enum sensor_channel chan) {
     struct bvd_data *drv_data = dev->data;
     const struct bvd_config *drv_cfg = dev->config;
@@ -86,6 +92,7 @@ static int bvd_sample_fetch(const struct device *dev, enum sensor_channel chan) 
         LOG_DBG("Percent: %d", percent);
 
         drv_data->value.millivolts = millivolts;
+        zmk_millivolts = millivolts;
         drv_data->value.state_of_charge = percent;
     } else {
         LOG_DBG("Failed to read ADC: %d", rc);

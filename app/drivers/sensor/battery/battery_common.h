@@ -15,6 +15,8 @@ struct battery_value {
     uint8_t state_of_charge;
 };
 
+uint16_t zmk_get_millivolts();
+
 int battery_channel_get(const struct battery_value *value, enum sensor_channel chan,
                         struct sensor_value *val_out);
 

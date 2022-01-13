@@ -174,7 +174,7 @@ int invoke_locally(struct zmk_behavior_binding *binding, struct zmk_behavior_bin
         .position = position,
         .timestamp = timestamp,
     }));
-    ;
+    
 }
 
 int zmk_keymap_apply_position_state(uint8_t source, int layer, uint32_t position, bool pressed,
@@ -199,12 +199,6 @@ int zmk_keymap_apply_position_state(uint8_t source, int layer, uint32_t position
         .position = position,
         .timestamp = timestamp,
     };
-
-    // const struct zmk_behavior_binding_event event = {
-    //     .layer = ev->layer,
-    //     .position = ev->position,
-    //     .timestamp = ev->timestamp,
-    // };
 
     int err = behavior_keymap_binding_convert_central_state_dependent_params(&binding, event);
     if (err) {

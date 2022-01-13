@@ -29,6 +29,13 @@ struct vddh_data {
     struct battery_value value;
 };
 
+
+static uint16_t zmk_millivolts = 0;
+
+uint16_t zmk_get_millivolts() {
+    return zmk_millivolts;
+}
+
 static int vddh_sample_fetch(const struct device *dev, enum sensor_channel chan) {
     // Make sure selected channel is supported
     if (chan != SENSOR_CHAN_GAUGE_VOLTAGE && chan != SENSOR_CHAN_GAUGE_STATE_OF_CHARGE &&
@@ -56,6 +63,7 @@ static int vddh_sample_fetch(const struct device *dev, enum sensor_channel chan)
     }
 
     drv_data->value.millivolts = val * VDDHDIV;
+    zmk_millivolts = val * VDDHDIV;
     drv_data->value.state_of_charge = lithium_ion_mv_to_pct(drv_data->value.millivolts);
 
     LOG_DBG("ADC raw %d ~ %d mV => %d%%", drv_data->value.adc_raw, drv_data->value.millivolts,

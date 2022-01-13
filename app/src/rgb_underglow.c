@@ -262,7 +262,7 @@ static int zmk_rgb_underglow_init(const struct device *_arg) {
 
     k_delayed_work_init(&underglow_save_work, zmk_rgb_underglow_save_state_work);
 
-    settings_load_subtree("rgb/underglow");
+    //settings_load_subtree("rgb/underglow");
 #endif
 
     k_timer_start(&underglow_tick, K_NO_WAIT, K_MSEC(50));

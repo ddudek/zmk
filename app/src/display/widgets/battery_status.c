@@ -16,20 +16,22 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/events/usb_conn_state_changed.h>
 #include <zmk/event_manager.h>
 #include <zmk/events/battery_state_changed.h>
+#include <battery_common.h>
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
 struct battery_status_state {
     uint8_t level;
+    uint16_t millivolts;
 #if IS_ENABLED(CONFIG_USB)
     bool usb_present;
 #endif
 };
 
 static void set_battery_symbol(lv_obj_t *label, struct battery_status_state state) {
-    char text[2] = "  ";
+    char text[5] = ",,,,,";
 
-    uint8_t level = state.level;
+    uint16_t millivolts = state.millivolts;
 
 #if IS_ENABLED(CONFIG_USB)
     if (state.usb_present) {
@@ -37,17 +39,24 @@ static void set_battery_symbol(lv_obj_t *label, struct battery_status_state stat
     }
 #endif /* IS_ENABLED(CONFIG_USB) */
 
-    if (level > 95) {
-        strcat(text, LV_SYMBOL_BATTERY_FULL);
-    } else if (level > 65) {
-        strcat(text, LV_SYMBOL_BATTERY_3);
-    } else if (level > 35) {
-        strcat(text, LV_SYMBOL_BATTERY_2);
-    } else if (level > 5) {
-        strcat(text, LV_SYMBOL_BATTERY_1);
-    } else {
-        strcat(text, LV_SYMBOL_BATTERY_EMPTY);
-    }
+    // if (level > 95) {
+    //     strcat(text, LV_SYMBOL_BATTERY_FULL);
+    // } else if (level > 65) {
+    //     strcat(text, LV_SYMBOL_BATTERY_3);
+    // } else if (level > 35) {
+    //     strcat(text, LV_SYMBOL_BATTERY_2);
+    // } else if (level > 5) {
+    //     strcat(text, LV_SYMBOL_BATTERY_1);
+    // } else {
+    //     strcat(text, LV_SYMBOL_BATTERY_EMPTY);
+    // }
+    
+    text[0] = '0' + (millivolts/1000)%10;
+    text[1] = '.';
+    text[2] = '0' + (millivolts/100)%10;
+    text[3] = '0' + (millivolts/10)%10;
+    text[4] = 'v';
+
     lv_label_set_text(label, text);
 }
 
@@ -59,8 +68,9 @@ void battery_status_update_cb(struct battery_status_state state) {
 static struct battery_status_state battery_status_get_state(const zmk_event_t *eh) {
     return (struct battery_status_state) {
         .level = bt_bas_get_battery_level(),
+        .millivolts = zmk_get_millivolts(),
 #if IS_ENABLED(CONFIG_USB)
-        .usb_present = zmk_usb_is_powered(),
+        .usb_present = zmk_usb_is_powered(), 
 #endif /* IS_ENABLED(CONFIG_USB) */
     };
 }
@@ -76,7 +86,7 @@ ZMK_SUBSCRIPTION(widget_battery_status, zmk_usb_conn_state_changed);
 int zmk_widget_battery_status_init(struct zmk_widget_battery_status *widget, lv_obj_t *parent) {
     widget->obj = lv_label_create(parent, NULL);
 
-    lv_obj_set_size(widget->obj, 40, 15);
+    lv_obj_set_size(widget->obj, 80, 15);
 
     sys_slist_append(&widgets, &widget->node);
 
