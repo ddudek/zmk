@@ -22,6 +22,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #include <zmk/event_manager.h>
 #include <zmk/events/position_state_changed.h>
+#include <zmk/events/behavior_state_changed.h>
 #include <zmk/events/layer_state_changed.h>
 #include <zmk/events/sensor_event.h>
 
@@ -158,13 +159,22 @@ const char *zmk_keymap_layer_label(uint8_t layer) {
     return zmk_keymap_layer_names[layer];
 }
 
-int invoke_locally(struct zmk_behavior_binding *binding, struct zmk_behavior_binding_event event,
-                   bool pressed) {
-    if (pressed) {
-        return behavior_keymap_binding_pressed(binding, event);
-    } else {
-        return behavior_keymap_binding_released(binding, event);
-    }
+int invoke_locally(struct zmk_behavior_binding *binding, struct zmk_behavior_binding_event event, int layer, uint32_t position,
+                   bool pressed, int64_t timestamp) {
+    // if (pressed) {
+    //     return behavior_keymap_binding_pressed(binding, event);
+    // } else {
+    //     return behavior_keymap_binding_released(binding, event);
+    // }
+
+    return ZMK_EVENT_RAISE(new_zmk_behavior_state_changed((struct zmk_behavior_state_changed){
+        .binding = *binding,
+        .pressed = pressed,
+        .layer = layer,
+        .position = position,
+        .timestamp = timestamp,
+    }));
+    ;
 }
 
 int zmk_keymap_apply_position_state(uint8_t source, int layer, uint32_t position, bool pressed,
@@ -173,11 +183,6 @@ int zmk_keymap_apply_position_state(uint8_t source, int layer, uint32_t position
     // relative to absolute before being invoked
     struct zmk_behavior_binding binding = zmk_keymap[layer][position];
     const struct device *behavior;
-    struct zmk_behavior_binding_event event = {
-        .layer = layer,
-        .position = position,
-        .timestamp = timestamp,
-    };
 
     LOG_DBG("layer: %d position: %d, binding name: %s", layer, position,
             log_strdup(binding.behavior_dev));
@@ -186,8 +191,20 @@ int zmk_keymap_apply_position_state(uint8_t source, int layer, uint32_t position
 
     if (!behavior) {
         LOG_WRN("No behavior assigned to %d on layer %d", position, layer);
-        return 1;
+        return ZMK_EV_EVENT_HANDLED;
     }
+
+    struct zmk_behavior_binding_event event = {
+        .layer = layer,
+        .position = position,
+        .timestamp = timestamp,
+    };
+
+    // const struct zmk_behavior_binding_event event = {
+    //     .layer = ev->layer,
+    //     .position = ev->position,
+    //     .timestamp = ev->timestamp,
+    // };
 
     int err = behavior_keymap_binding_convert_central_state_dependent_params(&binding, event);
     if (err) {
@@ -204,16 +221,16 @@ int zmk_keymap_apply_position_state(uint8_t source, int layer, uint32_t position
 
     switch (locality) {
     case BEHAVIOR_LOCALITY_CENTRAL:
-        return invoke_locally(&binding, event, pressed);
+        return invoke_locally(&binding, event, layer, position, pressed, timestamp);
     case BEHAVIOR_LOCALITY_EVENT_SOURCE:
 #if ZMK_BLE_IS_CENTRAL
         if (source == UINT_MAX) {
-            return invoke_locally(&binding, event, pressed);
+            return invoke_locally(&binding, event, layer, position, pressed, timestamp);
         } else {
             return zmk_split_bt_invoke_behavior(source, &binding, event, pressed);
         }
 #else
-        return invoke_locally(&binding, event, pressed);
+        return invoke_locally(&binding, event, layer, position, pressed, timestamp);
 #endif
     case BEHAVIOR_LOCALITY_GLOBAL:
 #if ZMK_BLE_IS_CENTRAL
@@ -221,7 +238,7 @@ int zmk_keymap_apply_position_state(uint8_t source, int layer, uint32_t position
             zmk_split_bt_invoke_behavior(i, &binding, event, pressed);
         }
 #endif
-        return invoke_locally(&binding, event, pressed);
+        return invoke_locally(&binding, event, layer, position, pressed, timestamp);
     }
 
     return -ENOTSUP;
@@ -235,7 +252,7 @@ int zmk_keymap_position_state_changed(uint8_t source, uint32_t position, bool pr
     for (int layer = ZMK_KEYMAP_LAYERS_LEN - 1; layer >= _zmk_keymap_layer_default; layer--) {
         if (zmk_keymap_layer_active_with_state(layer, zmk_keymap_active_behavior_layer[position])) {
             int ret = zmk_keymap_apply_position_state(source, layer, position, pressed, timestamp);
-            if (ret > 0) {
+            if (ret == ZMK_EV_EVENT_BUBBLE) {
                 LOG_DBG("behavior processing to continue to next layer");
                 continue;
             } else if (ret < 0) {
