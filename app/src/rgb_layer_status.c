@@ -44,7 +44,7 @@ void set_rgb_color_both_split(struct zmk_led_hsb color) {
     };
     bool pressed = true;
     uint8_t source = 0;
-    zmk_split_bt_invoke_behavior(source, &binding, event, pressed);
+    zmk_split_bt_invoke_behavior_delay(source, &binding, event, pressed, 0);
 }
 
 
@@ -70,7 +70,7 @@ void set_rgb_enabled_both_split(bool on) {
     };
     bool pressed = true;
     uint8_t source = 0;
-    zmk_split_bt_invoke_behavior(source, &binding, event, pressed);
+    zmk_split_bt_invoke_behavior_delay(source, &binding, event, pressed, 0);
 }
 
 void set_layer_color()
@@ -85,11 +85,11 @@ void set_layer_color()
     switch (active_layer_index)
     {
         case  0 : { color.h = 0; color.s = 0; color.b =  0; break; }
-        case  1 : { color.h = 28; color.s = 100; color.b =  15; break; }
-        case  2 : { color.h = 175; color.s = 80; color.b =  15; break; }
-        case  3 : { color.h = 0; color.s = 100; color.b =  15; break; }
-        case  4 : { color.h = 340; color.s = 90; color.b =  15; break; }
-        default : { color.h = 0; color.s = 0; color.b =  1; break; }
+        case  1 : { color.h = 28; color.s = 100; color.b =  10; break; }
+        case  2 : { color.h = 175; color.s = 80; color.b =  10; break; }
+        case  3 : { color.h = 0; color.s = 100; color.b =  10; break; }
+        case  4 : { color.h = 340; color.s = 90; color.b =  10; break; }
+        default : { color.h = 0; color.s = 0; color.b =  0; break; }
     }
 
     if (color.b == 0)

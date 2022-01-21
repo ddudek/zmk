@@ -518,17 +518,18 @@ void split_central_split_run_callback(struct k_work *work) {
 K_WORK_DEFINE(split_central_split_run_work, split_central_split_run_callback);
 
 static int
-split_bt_invoke_behavior_payload(struct zmk_split_run_behavior_payload_wrapper payload_wrapper) {
+split_bt_invoke_behavior_payload_delay(struct zmk_split_run_behavior_payload_wrapper payload_wrapper, int delay) {
     LOG_DBG("");
 
-    int err = k_msgq_put(&zmk_split_central_split_run_msgq, &payload_wrapper, K_MSEC(100));
+    k_timeout_t timeout = delay == 0 ? K_NO_WAIT : K_MSEC(delay);
+    int err = k_msgq_put(&zmk_split_central_split_run_msgq, &payload_wrapper, timeout);
     if (err) {
         switch (err) {
         case -EAGAIN: {
             LOG_WRN("Consumer message queue full, popping first message and queueing again");
             struct zmk_split_run_behavior_payload_wrapper discarded_report;
             k_msgq_get(&zmk_split_central_split_run_msgq, &discarded_report, K_NO_WAIT);
-            return split_bt_invoke_behavior_payload(payload_wrapper);
+            return split_bt_invoke_behavior_payload_delay(payload_wrapper, 50);
         }
         default:
             LOG_WRN("Failed to queue behavior to send (%d)", err);
@@ -541,8 +542,8 @@ split_bt_invoke_behavior_payload(struct zmk_split_run_behavior_payload_wrapper p
     return 0;
 };
 
-int zmk_split_bt_invoke_behavior(uint8_t source, struct zmk_behavior_binding *binding,
-                                 struct zmk_behavior_binding_event event, bool state) {
+int zmk_split_bt_invoke_behavior_delay(uint8_t source, struct zmk_behavior_binding *binding,
+                                 struct zmk_behavior_binding_event event, bool state, int delay) {
     struct zmk_split_run_behavior_payload payload = {.data = {
                                                          .param1 = binding->param1,
                                                          .param2 = binding->param2,
@@ -553,7 +554,12 @@ int zmk_split_bt_invoke_behavior(uint8_t source, struct zmk_behavior_binding *bi
     payload.behavior_dev[ZMK_SPLIT_RUN_BEHAVIOR_DEV_LEN - 1] = '\0';
 
     struct zmk_split_run_behavior_payload_wrapper wrapper = {.source = source, .payload = payload};
-    return split_bt_invoke_behavior_payload(wrapper);
+    return split_bt_invoke_behavior_payload_delay(wrapper, delay);
+}
+
+int zmk_split_bt_invoke_behavior(uint8_t source, struct zmk_behavior_binding *binding,
+                                 struct zmk_behavior_binding_event event, bool state) { 
+    return zmk_split_bt_invoke_behavior_delay(source, binding, event, state, 50);
 }
 
 int zmk_split_bt_central_init(const struct device *_arg) {

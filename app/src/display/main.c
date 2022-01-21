@@ -55,7 +55,9 @@ void display_timer_cb() {
     k_work_submit_to_queue(zmk_display_work_q(), &display_tick_work);
 }
 
-void blank_display_cb(struct k_work *work) { display_blanking_on(display); }
+void blank_display_cb(struct k_work *work) { 
+    display_blanking_on(display); 
+    }
 
 void unblank_display_cb(struct k_work *work) { display_blanking_off(display); }
 
@@ -108,6 +110,9 @@ int zmk_display_init() {
     }
 
     lv_scr_load(screen);
+
+    // display_set_contrast(display, 1);
+    // display_set_brightness(display, 1);
 
     start_display_updates();
 
