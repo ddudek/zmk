@@ -1,0 +1,15 @@
+file_format: "1"
+id: ride
+name: Ride
+type: shield
+url: https://ddudek.pl
+requires: [pro_micro]
+exposes: [i2c_oled]
+features:
+  - keys
+  - display
+  - encoder
+  - underglow
+siblings:
+  - ride_left
+  - ride_right
