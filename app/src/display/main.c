@@ -18,6 +18,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/event_manager.h>
 #include <zmk/events/activity_state_changed.h>
 #include <zmk/display/status_screen.h>
+#include <drivers/ext_power.h>
 
 #define ZMK_DISPLAY_NAME CONFIG_LVGL_DISPLAY_DEV_NAME
 
@@ -85,6 +86,8 @@ static void stop_display_updates() {
 
 int zmk_display_is_initialized() { return initialized; }
 
+static const struct device *ext_power;
+
 int zmk_display_init() {
     LOG_DBG("");
 
@@ -113,9 +116,16 @@ int zmk_display_init() {
 
     initialized = true;
 
+    ext_power = device_get_binding("EXT_POWER");
+    if (ext_power == NULL) {
+        LOG_ERR("Unable to retrieve ext_power device: EXT_POWER");
+    }
+
     LOG_DBG("");
     return 0;
 }
+
+static bool power = true;
 
 int display_event_handler(const zmk_event_t *eh) {
     struct zmk_activity_state_changed *ev = as_zmk_activity_state_changed(eh);
@@ -126,8 +136,16 @@ int display_event_handler(const zmk_event_t *eh) {
     switch (ev->state) {
     case ZMK_ACTIVITY_ACTIVE:
         start_display_updates();
+        if(power == false) {
+            ext_power_enable(ext_power);
+            power = true;
+        }
         break;
     case ZMK_ACTIVITY_IDLE:
+        stop_display_updates();
+        ext_power_disable(ext_power);
+        power = false;
+        break;
     case ZMK_ACTIVITY_SLEEP:
         stop_display_updates();
         break;

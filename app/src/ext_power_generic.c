@@ -13,6 +13,9 @@
 #include <settings/settings.h>
 #include <drivers/gpio.h>
 #include <drivers/ext_power.h>
+#include <drivers/display.h>
+
+#define ZMK_DISPLAY_NAME CONFIG_LVGL_DISPLAY_DEV_NAME
 
 #if DT_HAS_COMPAT_STATUS_OKAY(DT_DRV_COMPAT)
 
@@ -59,6 +62,16 @@ int ext_power_save_state() {
 #endif
 }
 
+static void drivers_update_power_state(bool power) {
+    LOG_DBG("drivers_update_power_state: %s", power?"true":"false");
+    static const struct device *display;
+    display = device_get_binding(ZMK_DISPLAY_NAME);
+
+    if (display != NULL) {
+        display_update_ext_power(display, power);
+    }
+}
+
 static int ext_power_generic_enable(const struct device *dev) {
     struct ext_power_generic_data *data = dev->data;
     const struct ext_power_generic_config *config = dev->config;
@@ -68,6 +81,7 @@ static int ext_power_generic_enable(const struct device *dev) {
         return -EIO;
     }
     data->status = true;
+    drivers_update_power_state(true);
     return ext_power_save_state();
 }
 
@@ -80,6 +94,8 @@ static int ext_power_generic_disable(const struct device *dev) {
         return -EIO;
     }
     data->status = false;
+
+    drivers_update_power_state(false);
     return ext_power_save_state();
 }
 
@@ -148,25 +164,25 @@ static int ext_power_generic_init(const struct device *dev) {
 #endif
 
 #if IS_ENABLED(CONFIG_SETTINGS)
-    settings_subsys_init();
+    // settings_subsys_init();
 
-    int err = settings_register(&ext_power_conf);
-    if (err) {
-        LOG_ERR("Failed to register the ext_power settings handler (err %d)", err);
-        return err;
-    }
+    // int err = settings_register(&ext_power_conf);
+    // if (err) {
+    //     LOG_ERR("Failed to register the ext_power settings handler (err %d)", err);
+    //     return err;
+    // }
 
-    k_delayed_work_init(&ext_power_save_work, ext_power_save_state_work);
+    // k_delayed_work_init(&ext_power_save_work, ext_power_save_state_work);
 
-    // Set default value (on) if settings isn't set
-    settings_load_subtree("ext_power");
-    if (!data->settings_init) {
+    // // Set default value (on) if settings isn't set
+    // settings_load_subtree("ext_power");
+    // if (!data->settings_init) {
 
-        data->status = true;
-        k_delayed_work_submit(&ext_power_save_work, K_NO_WAIT);
+    //     data->status = true;
+    //     k_delayed_work_submit(&ext_power_save_work, K_NO_WAIT);
 
         ext_power_enable(dev);
-    }
+    // }
 #else
     // Default to the ext_power being open when no settings
     ext_power_enable(dev);
