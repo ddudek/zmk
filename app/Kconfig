@@ -261,15 +261,35 @@ menu "Display/LED Options"
 
 rsource "src/display/Kconfig"
 
-config ZMK_RGB_UNDERGLOW
-	bool "RGB Adressable LED Underglow"
+config ZMK_RGB_ENABLED
+	bool "General rgb off/on switch"
 	select LED_STRIP
 
-if ZMK_RGB_UNDERGLOW
+if ZMK_RGB_ENABLED
+
+config ZMK_RGB_BRT_MIN
+	int "RGB minimum brightness in percent"
+	range 0 100
+	default 0
+
+config ZMK_RGB_BRT_MAX
+	int "RGB maximum brightness in percent"
+	range ZMK_RGB_UNDERGLOW_BRT_MIN 100
+	default 100
+	
+config ZMK_RGB_LAYER_EFFECTS
+	bool "Effects for rgb effects per layer"
+	default n
 
 # This default value cuts down on tons of excess .conf files, if you're using GPIO, manually disable this
 config SPI
 	default y
+
+config ZMK_RGB_UNDERGLOW
+	bool "RGB Adressable LED Underglow"
+	default n
+
+if ZMK_RGB_UNDERGLOW
 
 config ZMK_RGB_UNDERGLOW_EXT_POWER
 	bool "RGB underglow toggling also controls external power"
@@ -330,6 +350,9 @@ config ZMK_RGB_UNDERGLOW_ON_START
 	default y
 
 #ZMK_RGB_UNDERGLOW
+endif
+
+#ZMK_RGB_ENABLED
 endif
 
 #Display/LED Options
